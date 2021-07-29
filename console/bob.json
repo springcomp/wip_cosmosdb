@@ -1,0 +1,32 @@
+{
+	"id": "bob",
+	"displayName": "Bob",
+	"createdUtc": "2021-07-28T15:53:44",
+	"forwardingAddress": "bob@somewhere.com",
+	"addresses": [
+		{
+			"name": "four",
+			"description": "This is addresse one.",
+			"emailAddress": "ezxnqv5323@masked-emails.me",
+			"forwardToEmailAddress": "bob@somewhere.com",
+			"received": 42,
+			"createdUtc": "2021-07-27T15:53:44"
+		},
+		{
+			"name": "zone",
+			"description": "This is addresse two.",
+			"emailAddress": "pklkghd64893lk@masked-emails.me",
+			"forwardToEmailAddress": "bob@somewhere.com",
+			"received": 76,
+			"createdUtc": "2021-07-27T15:43:44"
+		},
+		{
+			"name": "Qtwo",
+			"description": "This is addresse three.",
+			"emailAddress": "sdljk54688sq7D@masked-emails.me",
+			"forwardToEmailAddress": "bob@somewhere.com",
+			"received": 42,
+			"createdUtc": "2021-07-27T15:33:44"
+		}
+	]
+}

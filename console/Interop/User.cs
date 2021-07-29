@@ -2,11 +2,10 @@ using System;
 using CosmosGettingStartedTutorial;
 using Newtonsoft.Json;
 
-namespace Model
+namespace Model.Interop
 {
-	public sealed class User : ICosmosDbItem
+	public sealed class User 
 	{
-		[JsonProperty("id")]
 		public string Id { get; set; }
 		public string DisplayName { get; set; }
 		public string ForwardingAddress { get; set; }

@@ -49,8 +49,6 @@ public class Program
 		}
 		finally
 		{
-			Console.WriteLine("End of demo, press any key to exit.");
-			Console.ReadKey();
 		}
 	}
 
@@ -64,20 +62,37 @@ public class Program
 		await this.CreateDatabaseAsync();
 		this.container = await this.CreateContainerAsync();
 
-		await this.AddItemsToContainerAsync();
-		await this.QueryItemsAsync();
+		//await this.AddItemsToContainerAsync();
+		//await this.QueryItemsAsync();
 
-		await this.AddModelAsync();
+		var container = await this.AddModelAsync();
+		await this.QueryAddressesAsync(container, "Alice.1");
+		await this.QueryAddressesAsync(container, "Bob.1", asc: "desc");
 	}
 
-	private async Task AddModelAsync()
+	private async Task<Container> AddModelAsync()
 	{
-		var content = JsonConvert.DeserializeObject<Model.User>(
-			File.ReadAllText(@"C:\Projects\springcomp\cosmos\console\model.json")
-		);
-		content.Id = content.DisplayName + ".1";
-		var container = await CreateContainerAsync("MaskedEmails", "/DisplayName");
-		await InsertItemAsync(container, content, content.Id, content.DisplayName);
+		var container = await CreateContainerAsync("Addresses", "/UserId");
+		var paths = new[]{
+			@"C:\Projects\springcomp\cosmos\console\alice.json",
+			@"C:\Projects\springcomp\cosmos\console\bob.json",
+		};
+		foreach (var path in paths)
+		{
+			var content = JsonConvert.DeserializeObject<Model.Interop.User>(
+				File.ReadAllText(path)
+			);
+			content.Id = content.DisplayName + ".1";
+
+			foreach (var address in content.Addresses)
+			{
+				var addr = Models.MaskedEmail.Clone(address);
+				addr.Id = addr.EmailAddress;
+				addr.UserId = content.Id;
+				await InsertItemAsync(container, addr, addr.Id, addr.UserId);
+			}
+		}
+		return container;
 	}
 
 	private Task<ItemResponse<T>> InsertItemAsync<T>(T @object, string id, string partition) where T : ICosmosDbItem
@@ -86,7 +101,7 @@ public class Program
 	}
 	private async Task<ItemResponse<T>> InsertItemAsync<T>(Container cont, T @object, string id, string partition) where T : ICosmosDbItem
 	{
-		
+
 		try
 		{
 			// Read the item to see if it exists.  
@@ -225,6 +240,27 @@ public class Program
 			{
 				families.Add(family);
 				Console.WriteLine("\tRead {0}\n", family);
+			}
+		}
+	}
+	private async Task QueryAddressesAsync(Container container, string partition, int perPage = 1, string sort_by = "c.EmailAddress", string asc = "asc")
+	{
+		var sqlQueryText = $"SELECT TOP {perPage} * FROM c WHERE c.UserId = '{partition}' ORDER BY {sort_by} {asc}";
+
+		Console.WriteLine("Running query: {0}\n", sqlQueryText);
+
+		QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
+		FeedIterator<Models.MaskedEmail> queryResultSetIterator = container.GetItemQueryIterator<Models.MaskedEmail>(queryDefinition);
+
+		List<Models.MaskedEmail> addresses = new List<Models.MaskedEmail>();
+
+		while (queryResultSetIterator.HasMoreResults)
+		{
+			FeedResponse<Models.MaskedEmail> currentResultSet = await queryResultSetIterator.ReadNextAsync();
+			foreach (Models.MaskedEmail address in currentResultSet)
+			{
+				addresses.Add(address);
+				Console.WriteLine("\tRead {0}\n", address);
 			}
 		}
 	}
