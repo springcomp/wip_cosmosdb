@@ -9,8 +9,13 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
 using Spectre.Console;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
+using System.Threading;
+using Microsoft.Extensions.Configuration;
 
-public class Program
+public class Program : IHostedService, IDisposable
 {
 	// ADD THIS PART TO YOUR CODE
 
@@ -31,20 +36,101 @@ public class Program
 	// The name of the database and container we will create
 	private string databaseId = "FamilyDatabase";
 	private string containerId = "FamilyContainer";
-	public static async Task Main(string[] args)
+
+	private Timer timer_ = null;
+	private readonly ILogger logger_;
+	private readonly IConfiguration configuration_;
+	private readonly IServiceProvider provider_;
+
+	public static void Main(string[] args)
+	{
+		CreateHostBuilder(args)
+			.Build()
+			.Run()
+			;
+	}
+
+	public static IHostBuilder CreateHostBuilder(string[] args)
+		=> Host.CreateDefaultBuilder(args)
+			.ConfigureAppConfiguration((hostContext, app) =>
+			{
+				var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+				Console.WriteLine("BasePath: " + basePath);
+				app.SetBasePath(basePath);
+				app.AddJsonFile("host.json", optional: true);
+				app.AddJsonFile("appSettings.json", optional: true);
+				app.AddEnvironmentVariables(prefix: "DOTNET_");
+				app.AddCommandLine(args);
+			})
+			.ConfigureServices((hostContext, services) =>
+			{
+				services.AddHostedService<Program>();
+				services
+					.AddLogging(configure => configure.AddConsole())
+					.AddTransient<Program>()
+					;
+
+				services.AddTransient<ICosmosRequestChargeOperations, CosmosRequestChargeOperations>();
+
+				services.AddSingleton<CosmosClient>(
+					new CosmosClient(EndpointUri, PrimaryKey, GetUnsafeCosmosClientOptions())
+				);
+			})
+			;
+
+	public Program(
+		IServiceProvider provider,
+		IConfiguration configuration,
+		ILogger<Program> logger
+	)
+	{
+		logger_ = logger;
+		configuration_ = configuration;
+		provider_ = provider;
+	}
+
+	public Task StartAsync(CancellationToken cancellationToken)
+	{
+		timer_ = new Timer(DoWork, null, TimeSpan.FromSeconds(1.0), Timeout.InfiniteTimeSpan);
+		return Task.CompletedTask;
+	}
+
+	public Task StopAsync(CancellationToken cancellationToken)
+	{
+		timer_?.Change(Timeout.Infinite, 0);
+		return Task.CompletedTask;
+	}
+
+	private void DoWork(object state)
+	{
+		Task.Run(async () => await DoWorkAsync());
+	}
+
+	public async Task DoWorkAsync()
 	{
 		try
 		{
-			Console.WriteLine("Beginning operations...\n");
-			Program p = new Program();
+			logger_.LogDebug("Beginning operations...\n");
+			logger_.LogInformation("Information");
+			logger_.LogError("Error");
 
-			var client = p.CreateClient(EndpointUri, PrimaryKey);
-			var operations = new CosmosRequestChargeOperations(client);
-			var database = await operations.CreateDatabaseIfNotExistsAsync(p.databaseId);
+			Console.WriteLine($"Setting: {configuration_["setting"]}");
+			Console.WriteLine($"LogLevel: {configuration_["logging__logLevel__default"]}");
+			var logging = configuration_.GetSection("logging");
+			var logLevel = logging.GetSection("logLevel");
+			var defaul_ = logLevel.GetValue<string>("default");
+			if (defaul_ == null || defaul_.Length == 0)
+				Console.WriteLine("No logging");
+			Console.WriteLine("level: " + defaul_);
+
+			var operations = provider_.GetService<ICosmosRequestChargeOperations>();
+			var database = await operations.CreateDatabaseIfNotExistsAsync(databaseId);
 
 			//await p.GetStartedDemoAsync();
 
 			AnsiConsole.MarkupLine($"[yellow]Request charges: {operations.RequestCharges}RU.[/]");
+
+			logger_.LogDebug("Done.");
 		}
 		catch (CosmosException de)
 		{
@@ -58,6 +144,7 @@ public class Program
 		finally
 		{
 		}
+
 	}
 
 	/*
@@ -273,9 +360,16 @@ public class Program
 		}
 	}
 
-	private CosmosClient CreateClient(string endpoint, string primaryKey)
+	private static CosmosClient CreateClient(string endpoint, string primaryKey)
 	{
-		var options = new CosmosClientOptions
+		CosmosClientOptions options = GetUnsafeCosmosClientOptions();
+		var client = new CosmosClient(endpoint, primaryKey, options);
+		return client;
+	}
+
+	private static CosmosClientOptions GetUnsafeCosmosClientOptions()
+	{
+		return new CosmosClientOptions
 		{
 			HttpClientFactory = () =>
 			{
@@ -287,7 +381,10 @@ public class Program
 			},
 			ConnectionMode = ConnectionMode.Gateway,
 		};
-		var client = new CosmosClient(endpoint, primaryKey, options);
-		return client;
+	}
+
+	public void Dispose()
+	{
+		timer_?.Dispose();
 	}
 }
