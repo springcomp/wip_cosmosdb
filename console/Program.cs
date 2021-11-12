@@ -7,13 +7,15 @@ using Microsoft.Azure.Cosmos;
 using CosmosGettingStartedTutorial;
 using Newtonsoft.Json;
 using System.IO;
+using System.Net.Http;
+using Spectre.Console;
 
 public class Program
 {
 	// ADD THIS PART TO YOUR CODE
 
 	// The Azure Cosmos DB endpoint for running this sample.
-	private static readonly string EndpointUri = "https://localhost:8081";
+	private static readonly string EndpointUri = "https://cosmosdb:8081";
 	// The primary key for the Azure Cosmos account.
 	private static readonly string PrimaryKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
 
@@ -35,8 +37,14 @@ public class Program
 		{
 			Console.WriteLine("Beginning operations...\n");
 			Program p = new Program();
-			await p.GetStartedDemoAsync();
 
+			var client = p.CreateClient(EndpointUri, PrimaryKey);
+			var operations = new CosmosRequestChargeOperations(client);
+			var database = await operations.CreateDatabaseIfNotExistsAsync(p.databaseId);
+
+			//await p.GetStartedDemoAsync();
+
+			AnsiConsole.MarkupLine($"[yellow]Request charges: {operations.RequestCharges}RU.[/]");
 		}
 		catch (CosmosException de)
 		{
@@ -58,7 +66,7 @@ public class Program
 	public async Task GetStartedDemoAsync()
 	{
 		// Create a new instance of the Cosmos Client
-		this.cosmosClient = new CosmosClient(EndpointUri, PrimaryKey);
+		this.cosmosClient = CreateClient(EndpointUri, PrimaryKey);
 		await this.CreateDatabaseAsync();
 		this.container = await this.CreateContainerAsync();
 
@@ -74,8 +82,8 @@ public class Program
 	{
 		var container = await CreateContainerAsync("Addresses", "/UserId");
 		var paths = new[]{
-			@"C:\Projects\springcomp\cosmos\console\alice.json",
-			@"C:\Projects\springcomp\cosmos\console\bob.json",
+			@"./alice.json",
+			@"./bob.json",
 		};
 		foreach (var path in paths)
 		{
@@ -263,5 +271,23 @@ public class Program
 				Console.WriteLine("\tRead {0}\n", address);
 			}
 		}
+	}
+
+	private CosmosClient CreateClient(string endpoint, string primaryKey)
+	{
+		var options = new CosmosClientOptions
+		{
+			HttpClientFactory = () =>
+			{
+				HttpMessageHandler httpMessageHandler = new HttpClientHandler
+				{
+					ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+				};
+				return new HttpClient(httpMessageHandler);
+			},
+			ConnectionMode = ConnectionMode.Gateway,
+		};
+		var client = new CosmosClient(endpoint, primaryKey, options);
+		return client;
 	}
 }

@@ -1,0 +1,13 @@
+{
+    "dockerComposeFile": [ "../docker-compose.yaml" ],
+    "service": "workspace",
+    "workspaceFolder": "/workspace",
+    "postCreateCommand": "/workspace/.devcontainer/post-create.sh",
+    "shutdownAction": "stopCompose", 
+
+    "extensions": [
+        "formulahendry.dotnet-test-explorer",
+        "ms-dotnettools.csharp",
+    ],
+    "forwardPorts": []
+}
