@@ -32,22 +32,73 @@ public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperatio
 
 	public async Task<DatabaseResponse> CreateDatabaseIfNotExistsAsync(string databaseName)
 	{
-		var response = await operations_.CreateDatabaseIfNotExistsAsync(databaseName);
-		AccumulateRequestCharges(response.RequestCharge);
-		logger_.TraceRequestCharge(nameof(ICosmosOperations.CreateDatabaseIfNotExistsAsync), response.RequestCharge);
-		return response;
+		return await CalcRequestCharges<DatabaseResponse>(
+			nameof(ICosmosOperations.CreateDatabaseIfNotExistsAsync),
+			async () => await operations_.CreateDatabaseIfNotExistsAsync(databaseName),
+			r => r.RequestCharge
+		);
 	}
 
 	async Task<ContainerResponse> ICosmosOperations.CreateContainerIfNotExistsAsync(Database database, string containerName, string partitionPath)
 	{
-		var response = await operations_.CreateContainerIfNotExistsAsync(database, containerName, partitionPath);
-		AccumulateRequestCharges(response.RequestCharge);
-		logger_.TraceRequestCharge(nameof(ICosmosOperations.CreateContainerIfNotExistsAsync), response.RequestCharge);
-		return response;
+		return await CalcRequestCharges<ContainerResponse>(
+			nameof(ICosmosOperations.CreateContainerIfNotExistsAsync),
+			async () => await operations_.CreateContainerIfNotExistsAsync(database, containerName, partitionPath),
+			r => r.RequestCharge
+			);
+	}
+	public async Task<ItemResponse<T>> GetItemAsync<T>(Container container, string partition, string id) where T : ICosmosDbItem
+	{
+		return await CalcRequestCharges<ItemResponse<T>>(
+			nameof(ICosmosOperations.GetItemAsync),
+			async () => await operations_.GetItemAsync<T>(container, partition, id),
+			r => r.RequestCharge
+		);
 	}
 
-	private void AccumulateRequestCharges(double requestCharge)
+	public async Task<ItemResponse<T>> CreateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
 	{
+		return await CalcRequestCharges<ItemResponse<T>>(
+			nameof(ICosmosOperations.CreateItemAsync),
+			async () => await operations_.CreateItemAsync(container, item, partition),
+			r => r.RequestCharge
+		);
+	}
+
+	public async Task<ItemResponse<T>> ReplaceItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+	{
+		return await CalcRequestCharges<ItemResponse<T>>(
+			nameof(ICosmosOperations.CreateItemAsync),
+			async () => await operations_.ReplaceItemAsync(container, item, partition),
+			r => r.RequestCharge
+		);
+	}
+
+	public Task<ItemResponse<T>> InsertOrUpdateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+	{
+		throw new NotImplementedException();
+	}
+
+	private async Task<T> CalcRequestCharges<T>(string name, Func<Task<T>> function, Func<T, double> getRequestCharge)
+	{
+		T response = default(T);
+		try
+		{
+			response = await function();
+			return response;
+		}
+		finally
+		{
+			var requestCharge = getRequestCharge(response);
+			logger_.TraceRequestCharge(name, requestCharge);
+			AccumulateRequestCharges(name, requestCharge);
+		}
+	}
+
+	private void AccumulateRequestCharges(string name, double requestCharge)
+	{
+		logger_.TraceRequestCharge(name, requestCharge);
 		requestCharges_ += requestCharge;
 	}
+
 }

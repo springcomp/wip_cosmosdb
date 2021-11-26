@@ -125,6 +125,7 @@ public class Program : IHostedService, IDisposable
 
 			var operations = provider_.GetService<ICosmosRequestChargeOperations>();
 			var database = await operations.CreateDatabaseIfNotExistsAsync(databaseId);
+			var container = await operations.CreateContainerIfNotExistsAsync(database, "Addresses", "/UserId");
 
 			//await p.GetStartedDemoAsync();
 
@@ -144,7 +145,6 @@ public class Program : IHostedService, IDisposable
 		finally
 		{
 		}
-
 	}
 
 	/*
