@@ -75,16 +75,28 @@ public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperatio
 		);
 	}
 
-	public async Task<ItemResponse<T>> InsertOrUpdateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+	public async Task<ItemResponse<T>> CreateOrReplaceItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
 	{
 		try
 		{
-			var response = await GetItemAsync<T>(container, item.Id, partition);
+			var response = await GetItemAsync<T>(container, partition, item.Id);
 			return await ReplaceItemAsync<T>(container, item, partition);
 		}
 		catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
 		{
 			return await CreateItemAsync<T>(container, item, partition);
+		}
+	}
+
+	public async Task<ItemResponse<T>> CreateItemIfNotExistsAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+	{
+		try
+		{
+			return await CreateItemAsync<T>(container, item, partition);
+		}
+		catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+		{
+			return await GetItemAsync<T>(container, partition, item.Id);
 		}
 	}
 

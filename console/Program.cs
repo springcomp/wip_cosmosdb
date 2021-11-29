@@ -124,7 +124,7 @@ public class Program : IHostedService, IDisposable
 
 			var operations = provider_.GetService<ICosmosRequestChargeOperations>();
 			var database = await operations.CreateDatabaseIfNotExistsAsync(databaseId);
-			var container = await operations.CreateContainerIfNotExistsAsync(database, "Addresses", "/UserId");
+			var container = await operations.CreateContainerIfNotExistsAsync(database, "Profiles", "/id");
 
 			await AddModelAsync(operations, container);
 
@@ -169,7 +169,7 @@ public class Program : IHostedService, IDisposable
 
 	private async Task<Container> AddModelAsync(ICosmosOperations operations)
 	{
-		var container = await CreateContainerAsync("Addresses", "/UserId");
+		var container = await CreateContainerAsync("Profiles", "/UserId");
 		await AddModelAsync(operations, container);
 		return container;
 	}
@@ -184,15 +184,16 @@ public class Program : IHostedService, IDisposable
 			var content = JsonConvert.DeserializeObject<Model.Interop.User>(
 				File.ReadAllText(path)
 			);
-			content.Id = content.DisplayName + ".1";
 
-			foreach (var address in content.Addresses)
-			{
-				var addr = Models.MaskedEmail.Clone(address);
-				addr.Id = addr.EmailAddress;
-				addr.UserId = content.Id;
-				await operations.InsertOrUpdateItemAsync(container, addr, addr.UserId);
-			}
+			//foreach (var address in content.Addresses)
+			//{
+			//	var addr = Models.MaskedEmail.Clone(address);
+			//	addr.Id = addr.EmailAddress;
+			//	addr.UserId = content.Id;
+			//	await operations.CreateItemIfNotExistsAsync(container, addr, addr.UserId);
+			//}
+
+			await operations.CreateItemIfNotExistsAsync(container, content, content.Id);
 		}
 		return container;
 	}
