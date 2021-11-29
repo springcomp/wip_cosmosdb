@@ -31,31 +31,36 @@ public sealed class CosmosOperations : ICosmosOperations {
 		return container;
 	}
 
-	public Task<ItemResponse<T>> GetItemAsync<T>(Container container, string partition, string id) where T : ICosmosDbItem
+	public async Task<ItemResponse<T>> GetItemAsync<T>(Container container, string partition, string id) where T : ICosmosDbItem
 	{
-		return container.ReadItemAsync<T>(id, new PartitionKey(partition));
+		var response = await container.ReadItemAsync<T>(id, new PartitionKey(partition));
+		return response;
 	}
 
-	public Task<ItemResponse<T>> CreateItemAsync<T>(Container container, T item, string partition) where T: ICosmosDbItem
+	public async Task<ItemResponse<T>> CreateItemAsync<T>(Container container, T item, string partition) where T: ICosmosDbItem
 	{
-		return container.CreateItemAsync(item, new PartitionKey(partition));
+		var response = await container.CreateItemAsync(item, new PartitionKey(partition));
+		return response;
 	}
 
-	public Task<ItemResponse<T>> ReplaceItemAsync<T>(Container container, T item, string partition) where T: ICosmosDbItem
+	public async Task<ItemResponse<T>> ReplaceItemAsync<T>(Container container, T item, string partition) where T: ICosmosDbItem
 	{
-		return container.ReplaceItemAsync<T>(item, item.Id, new PartitionKey(partition));
+		var response = await container.ReplaceItemAsync<T>(item, item.Id, new PartitionKey(partition));
+		return response;
 	}
 
 	public async Task<ItemResponse<T>> InsertOrUpdateItemAsync<T>(Container container, T item, string partition) where T: ICosmosDbItem
 	{
 		try
 		{
-			ItemResponse<T> response = await container.ReadItemAsync<T>(item.Id, new PartitionKey(partition));
-			return await container.ReplaceItemAsync<T>(item, item.Id, new PartitionKey(partition));
+			var response = await container.ReadItemAsync<T>(item.Id, new PartitionKey(partition));
+			response = await container.ReplaceItemAsync<T>(item, item.Id, new PartitionKey(partition));
+			return response;
 		}
 		catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
 		{
-			return await container.CreateItemAsync<T>(item, new PartitionKey(partition));
+			var response = await container.CreateItemAsync<T>(item, new PartitionKey(partition));
+			return response;
 		}
 	}
 }

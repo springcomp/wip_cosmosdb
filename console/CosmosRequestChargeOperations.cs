@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Threading.Tasks;
 using Logging;
 using Microsoft.Azure.Cosmos;
@@ -74,9 +75,17 @@ public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperatio
 		);
 	}
 
-	public Task<ItemResponse<T>> InsertOrUpdateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+	public async Task<ItemResponse<T>> InsertOrUpdateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
 	{
-		throw new NotImplementedException();
+		try
+		{
+			var response = await GetItemAsync<T>(container, item.Id, partition);
+			return await ReplaceItemAsync<T>(container, item, partition);
+		}
+		catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+		{
+			return await CreateItemAsync<T>(container, item, partition);
+		}
 	}
 
 	private async Task<T> CalcRequestCharges<T>(string name, Func<Task<T>> function, Func<T, double> getRequestCharge)
@@ -89,9 +98,12 @@ public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperatio
 		}
 		finally
 		{
-			var requestCharge = getRequestCharge(response);
-			logger_.TraceRequestCharge(name, requestCharge);
-			AccumulateRequestCharges(name, requestCharge);
+			if (response != null)
+			{
+				var requestCharge = getRequestCharge(response);
+				logger_.TraceRequestCharge(name, requestCharge);
+				AccumulateRequestCharges(name, requestCharge);
+			}
 		}
 	}
 
@@ -100,5 +112,4 @@ public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperatio
 		logger_.TraceRequestCharge(name, requestCharge);
 		requestCharges_ += requestCharge;
 	}
-
 }

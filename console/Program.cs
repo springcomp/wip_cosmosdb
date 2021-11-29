@@ -112,7 +112,6 @@ public class Program : IHostedService, IDisposable
 		{
 			logger_.LogDebug("Beginning operations...\n");
 			logger_.LogInformation("Information");
-			logger_.LogError("Error");
 
 			Console.WriteLine($"Setting: {configuration_["setting"]}");
 			Console.WriteLine($"LogLevel: {configuration_["logging__logLevel__default"]}");
@@ -127,7 +126,7 @@ public class Program : IHostedService, IDisposable
 			var database = await operations.CreateDatabaseIfNotExistsAsync(databaseId);
 			var container = await operations.CreateContainerIfNotExistsAsync(database, "Addresses", "/UserId");
 
-			//await p.GetStartedDemoAsync();
+			await AddModelAsync(operations, container);
 
 			AnsiConsole.MarkupLine($"[yellow]Request charges: {operations.RequestCharges}RU.[/]");
 
@@ -152,6 +151,8 @@ public class Program : IHostedService, IDisposable
 	*/
 	public async Task GetStartedDemoAsync()
 	{
+		var operations = provider_.GetService<ICosmosRequestChargeOperations>();
+
 		// Create a new instance of the Cosmos Client
 		this.cosmosClient = CreateClient(EndpointUri, PrimaryKey);
 		await this.CreateDatabaseAsync();
@@ -160,14 +161,20 @@ public class Program : IHostedService, IDisposable
 		//await this.AddItemsToContainerAsync();
 		//await this.QueryItemsAsync();
 
-		var container = await this.AddModelAsync();
+		var container = await this.AddModelAsync(operations, this.container);
+
 		await this.QueryAddressesAsync(container, "Alice.1");
 		await this.QueryAddressesAsync(container, "Bob.1", asc: "desc");
 	}
 
-	private async Task<Container> AddModelAsync()
+	private async Task<Container> AddModelAsync(ICosmosOperations operations)
 	{
 		var container = await CreateContainerAsync("Addresses", "/UserId");
+		await AddModelAsync(operations, container);
+		return container;
+	}
+	private async Task<Container> AddModelAsync(ICosmosOperations operations, Container container)
+	{
 		var paths = new[]{
 			@"./alice.json",
 			@"./bob.json",
@@ -184,7 +191,7 @@ public class Program : IHostedService, IDisposable
 				var addr = Models.MaskedEmail.Clone(address);
 				addr.Id = addr.EmailAddress;
 				addr.UserId = content.Id;
-				await InsertItemAsync(container, addr, addr.Id, addr.UserId);
+				await operations.InsertOrUpdateItemAsync(container, addr, addr.UserId);
 			}
 		}
 		return container;
