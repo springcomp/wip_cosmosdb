@@ -1,9 +1,10 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Logging;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+
+using Logging;
 
 public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperations
 {

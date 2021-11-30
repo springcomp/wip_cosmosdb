@@ -6,12 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.20.1" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.23.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="Spectre.Console" Version="0.42.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MaskedEmails.Utils.CosmosDb/MaskedEmails.Utils.CosmosDb.csproj" />
   </ItemGroup>
 
   <ItemGroup>

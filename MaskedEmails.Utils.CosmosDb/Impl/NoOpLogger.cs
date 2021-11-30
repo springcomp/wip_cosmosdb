@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Logging
 {
-	public sealed class NoOpLogger : ILogger
+	internal sealed class NoOpLogger : ILogger
 	{
 		public IDisposable BeginScope<TState>(TState state)
 		{
