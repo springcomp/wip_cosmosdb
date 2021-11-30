@@ -14,13 +14,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Threading;
 using Microsoft.Extensions.Configuration;
+using Utils.CosmosDb.Interop;
+using Utils.CosmosDb;
 
 public class Program : IHostedService, IDisposable
 {
 	// ADD THIS PART TO YOUR CODE
 
 	// The Azure Cosmos DB endpoint for running this sample.
-	private static readonly string EndpointUri = "https://cosmosdb:8081";
+	private static readonly string EndpointUri = "https://localhost:8081";
 	// The primary key for the Azure Cosmos account.
 	private static readonly string PrimaryKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
 

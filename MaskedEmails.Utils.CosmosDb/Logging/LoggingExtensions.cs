@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 
-namespace Logging {
-	public static class LoggerExtensions {
+namespace Utils.CosmosDb.Logging {
+	internal static class LoggingExtensions {
 		public static void TraceRequestCharge(this ILogger logger, string message, double requestCharge)
 		{
 			logger.LogTrace(

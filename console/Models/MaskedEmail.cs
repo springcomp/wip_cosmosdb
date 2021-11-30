@@ -1,6 +1,6 @@
 using System;
-using CosmosGettingStartedTutorial;
 using Newtonsoft.Json;
+using Utils.CosmosDb.Interop;
 
 namespace Models
 {

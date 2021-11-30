@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Logging
+namespace Utils.CosmosDb.Logging
 {
 	internal sealed class NoOpLogger : ILogger
 	{
