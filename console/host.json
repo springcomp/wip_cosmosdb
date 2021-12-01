@@ -1,7 +1,7 @@
 {
 	"logging": {
 		"logLevel": {
-			"default": "Trace"
+			"default": "Debug"
 		}
 	}
 }
