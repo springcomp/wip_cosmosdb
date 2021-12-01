@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using System.Configuration;
 using System.Collections.Generic;
 using System.Net;
 using Microsoft.Azure.Cosmos;
@@ -12,12 +11,11 @@ using Spectre.Console;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
-using System.Threading;
 using Microsoft.Extensions.Configuration;
 using Utils.CosmosDb.Interop;
 using Utils.CosmosDb;
 
-public class Program : IHostedService, IDisposable
+public class Program
 {
     // The Cosmos client instance
     private CosmosClient cosmosClient;
@@ -32,24 +30,25 @@ public class Program : IHostedService, IDisposable
     private string databaseId = "FamilyDatabase";
     private string containerId = "FamilyContainer";
 
-    private Timer timer_ = null;
-
     private readonly AppSettings appSettings_;
 
     private readonly ILogger logger_;
-    private readonly IConfiguration configuration_;
-    private readonly IServiceProvider provider_;
+    private readonly ICosmosRequestChargeOperations operations_;
 
-    public static void Main(string[] args)
+    public async static Task Main(string[] args)
     {
-        CreateHostBuilder(args)
-            .Build()
-            .Run()
+        var host = CreateHostBuilder(args).Build();
+        await host
+            .Services
+            .GetRequiredService<Program>()
+            .RunAsync(args)
             ;
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args)
-        => Host.CreateDefaultBuilder(args)
+    {
+        return Host
+            .CreateDefaultBuilder(args)
             .ConfigureHostConfiguration(configHost =>
             {
                 var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
@@ -76,31 +75,39 @@ public class Program : IHostedService, IDisposable
                     .AddCommandLine(args)
                     ;
 
-                if (env.IsDevelopment()) {
-                    app.AddUserSecrets<Program>();
-                }
+                //if (env.IsDevelopment())
+                //{
+                //    app.AddUserSecrets<Program>(optional: true);
+                //}
             })
             .ConfigureServices((hostContext, services) =>
             {
                 var appSettings = GetAppSettings(hostContext);
-                var EndpointUri = appSettings.CosmosDb.EndpointUri;
-                var AccessKey = appSettings.CosmosDb.PrimaryKey;
+                var endpointUri = appSettings.CosmosDb.EndpointUri;
+                var accessKey = appSettings.CosmosDb.PrimaryKey;
+                var skipSslValidation = appSettings.CosmosDb.IgnoreSslServerCertificateValidation;
 
-                services.AddHostedService<Program>();
-                services
-                    .AddLogging(configure => configure.AddConsole())
-                    .AddTransient<Program>()
-                    ;
+                AnsiConsole.MarkupLine($"[yellow]CosmosDb Endpoint: {endpointUri}.[/]");
+                AnsiConsole.MarkupLine($"[yellow]CosmosDb Primary Key: {accessKey.Substring(0, 4)}***REDACTED***.[/]");
+                AnsiConsole.MarkupLine($"[yellow]Ignore CosmosDb Ssl Server Certificate: {skipSslValidation}.[/]");
+
+                services.AddLogging(configure => configure.AddConsole());
 
                 services.AddTransient<ICosmosRequestChargeOperations, CosmosRequestChargeOperations>();
+                services.AddTransient<Program>();
 
                 services.AddSingleton<AppSettings>(GetAppSettings(hostContext));
                 services.AddSingleton<CosmosClient>(
-                    new CosmosClient(EndpointUri, AccessKey, GetUnsafeCosmosClientOptions())
+                    new CosmosClient(
+                        endpointUri,
+                        accessKey,
+                        skipSslValidation
+                        ? GetUnsafeCosmosClientOptions()
+                        : new CosmosClientOptions()
+                        )
                 );
-            })
-        ;
-
+            });
+    }
     private static AppSettings GetAppSettings(HostBuilderContext hostContext)
     {
         var appSettings = new AppSettings()
@@ -114,48 +121,28 @@ public class Program : IHostedService, IDisposable
 
     public Program(
         AppSettings appSettings,
-        IServiceProvider provider,
-        IConfiguration configuration,
+        ICosmosRequestChargeOperations operations,
         ILogger<Program> logger
     )
     {
         appSettings_ = appSettings;
 
         logger_ = logger;
-        configuration_ = configuration;
-        provider_ = provider;
+        operations_ = operations;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        timer_ = new Timer(DoWork, null, TimeSpan.FromSeconds(1.0), Timeout.InfiniteTimeSpan);
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        timer_?.Change(Timeout.Infinite, 0);
-        return Task.CompletedTask;
-    }
-
-    private void DoWork(object state)
-    {
-        Task.Run(async () => await DoWorkAsync());
-    }
-
-    public async Task DoWorkAsync()
+    public async Task RunAsync(string[] args)
     {
         try
         {
             logger_.LogDebug("Beginning operations...\n");
 
-            var operations = provider_.GetService<ICosmosRequestChargeOperations>();
-            var database = await operations.CreateDatabaseIfNotExistsAsync(databaseId);
-            var container = await operations.CreateContainerIfNotExistsAsync(database, "Profiles", "/id");
+            var database = await operations_.CreateDatabaseIfNotExistsAsync(databaseId);
+            var container = await operations_.CreateContainerIfNotExistsAsync(database, "Profiles", "/id");
 
-            await AddModelAsync(operations, container);
+            await AddModelAsync(operations_, container);
 
-            AnsiConsole.MarkupLine($"[yellow]Request charges: {operations.RequestCharges}RU.[/]");
+            AnsiConsole.MarkupLine($"[yellow]Request charges: {operations_.RequestCharges}RU.[/]");
 
             logger_.LogDebug("Done.");
         }
@@ -178,8 +165,6 @@ public class Program : IHostedService, IDisposable
     */
     public async Task GetStartedDemoAsync()
     {
-        var operations = provider_.GetService<ICosmosRequestChargeOperations>();
-
         // Create a new instance of the Cosmos Client
         this.cosmosClient = CreateClient(appSettings_.CosmosDb.EndpointUri, appSettings_.CosmosDb.PrimaryKey);
         await this.CreateDatabaseAsync();
@@ -188,7 +173,7 @@ public class Program : IHostedService, IDisposable
         //await this.AddItemsToContainerAsync();
         //await this.QueryItemsAsync();
 
-        var container = await this.AddModelAsync(operations, this.container);
+        var container = await this.AddModelAsync(operations_, this.container);
 
         await this.QueryAddressesAsync(container, "Alice.1");
         await this.QueryAddressesAsync(container, "Bob.1", asc: "desc");
@@ -410,16 +395,15 @@ public class Program : IHostedService, IDisposable
             {
                 HttpMessageHandler httpMessageHandler = new HttpClientHandler
                 {
-                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+                    ServerCertificateCustomValidationCallback = (req, cert, chain, errs) =>
+                    {
+                        AnsiConsole.MarkupLine("[Red]Ignoring untrusted Ssl server certificate[/].");
+                        return HttpClientHandler.DangerousAcceptAnyServerCertificateValidator(req, cert, chain, errs);
+                    }
                 };
                 return new HttpClient(httpMessageHandler);
             },
             ConnectionMode = ConnectionMode.Gateway,
         };
-    }
-
-    public void Dispose()
-    {
-        timer_?.Dispose();
     }
 }
