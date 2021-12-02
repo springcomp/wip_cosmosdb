@@ -17,11 +17,11 @@ namespace Utils.CosmosDb
         public double RequestCharges => requestCharges_;
 
         public CosmosRequestChargeOperations(CosmosClient client)
-            : this(new CosmosOperations(client), null)
+            : this(new CosmosOperations(client, null), null)
         {
         }
         public CosmosRequestChargeOperations(CosmosClient client, ILogger<CosmosRequestChargeOperations> logger)
-            : this(new CosmosOperations(client), logger)
+            : this(new CosmosOperations(client, (ILogger)logger), logger)
         {
         }
         public CosmosRequestChargeOperations(ICosmosOperations operations)
