@@ -63,7 +63,7 @@ public class Program
             .ConfigureAppConfiguration((hostContext, app) =>
             {
                 IHostEnvironment env = hostContext.HostingEnvironment;
-                AnsiConsole.MarkupLine($"[yellow]Environment: {env.EnvironmentName}.[/]");
+                AnsiConsole.MarkupLine($"[grey]Environment: {env.EnvironmentName}.[/]");
 
                 var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
 
@@ -75,10 +75,10 @@ public class Program
                     .AddCommandLine(args)
                     ;
 
-                //if (env.IsDevelopment())
-                //{
-                //    app.AddUserSecrets<Program>(optional: true);
-                //}
+                if (env.IsDevelopment() && (args.Length == 0 || args[0] != "--no-secrets"))
+                {
+                    app.AddUserSecrets<Program>(optional: true);
+                }
             })
             .ConfigureServices((hostContext, services) =>
             {
@@ -87,9 +87,9 @@ public class Program
                 var accessKey = appSettings.CosmosDb.PrimaryKey;
                 var skipSslValidation = appSettings.CosmosDb.IgnoreSslServerCertificateValidation;
 
-                AnsiConsole.MarkupLine($"[yellow]CosmosDb Endpoint: {endpointUri}.[/]");
-                AnsiConsole.MarkupLine($"[yellow]CosmosDb Primary Key: {accessKey.Substring(0, 4)}***REDACTED***.[/]");
-                AnsiConsole.MarkupLine($"[yellow]Ignore CosmosDb Ssl Server Certificate: {skipSslValidation}.[/]");
+                AnsiConsole.MarkupLine($"[grey]CosmosDb Endpoint: {endpointUri}.[/]");
+                AnsiConsole.MarkupLine($"[grey]CosmosDb Primary Key: {accessKey.Substring(0, 4)}***REDACTED***.[/]");
+                AnsiConsole.MarkupLine($"[grey]CosmosDb Ignore Ssl Server Certificate: {skipSslValidation}.[/]");
 
                 services.AddLogging(configure => configure.AddConsole());
 
@@ -387,6 +387,7 @@ public class Program
         return client;
     }
 
+    private static bool unsafeOptionsWarningDisplayed = false;
     private static CosmosClientOptions GetUnsafeCosmosClientOptions()
     {
         return new CosmosClientOptions
@@ -397,7 +398,10 @@ public class Program
                 {
                     ServerCertificateCustomValidationCallback = (req, cert, chain, errs) =>
                     {
-                        AnsiConsole.MarkupLine("[Red]Ignoring untrusted Ssl server certificate[/].");
+                        if (!unsafeOptionsWarningDisplayed){
+                            AnsiConsole.MarkupLine("[yellow]Ignoring untrusted Ssl server certificate[/].");
+                            unsafeOptionsWarningDisplayed = true;
+                        }
                         return HttpClientHandler.DangerousAcceptAnyServerCertificateValidator(req, cert, chain, errs);
                     }
                 };
