@@ -8,7 +8,7 @@ using Utils.CosmosDb.Logging;
 
 namespace Utils.CosmosDb
 {
-    public sealed class CosmosRequestChargeOperations : CosmosOperations, ICosmosRequestChargeOperations
+    public sealed class CosmosRequestChargeOperations : CosmosOperations, ICosmosRequestChargeOperations, IRequestChargeAccumulator
     {
         private double requestCharges_ = 0.0D;
         private readonly ILogger logger_;
@@ -72,7 +72,7 @@ namespace Utils.CosmosDb
 
         public override Query<T> QueryItemsAsync<T>(Container container, string statement)
         {
-            return new Query<T>(container, statement);
+            return new Query<T>(container, statement, this as IRequestChargeAccumulator);
         }
 
         private async Task<T> CalcRequestCharges<T>(string name, Func<Task<T>> function, Func<T, double> getRequestCharge)
@@ -89,12 +89,12 @@ namespace Utils.CosmosDb
                 {
                     var requestCharge = getRequestCharge(response);
                     logger_.TraceRequestCharge(name, requestCharge);
-                    AccumulateRequestCharges(name, requestCharge);
+                    (this as IRequestChargeAccumulator).AccumulateRequestCharges(name, requestCharge);
                 }
             }
         }
 
-        private void AccumulateRequestCharges(string name, double requestCharge)
+        void IRequestChargeAccumulator.AccumulateRequestCharges(string name, double requestCharge)
         {
             logger_.TraceRequestCharge(name, requestCharge);
             requestCharges_ += requestCharge;
