@@ -155,8 +155,12 @@ public partial class Program
 
             var query = operations_.QueryItemsAsync<Model.Interop.User>(container, statement);
             await foreach (var page in query)
-            foreach (Model.Interop.User profile in page)
+                foreach (Model.Interop.User profile in page)
+                {
                     Console.WriteLine("\tRead {0}\n", profile);
+                    foreach (var address in profile.Addresses)
+                        Console.WriteLine("\t\t{0}", address);
+                }
 
             AnsiConsole.MarkupLine($"[yellow]Request charges: {operations_.RequestCharges}RU.[/]");
 

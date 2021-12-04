@@ -34,5 +34,10 @@ namespace Model.Interop
 			target.Received = Received;
 			target.CreatedUtc = CreatedUtc;
 		}
+
+		public override string ToString()
+		{
+			return $"{EmailAddress} ==> {EnableForwarding}";
+		}
 	}
 }
