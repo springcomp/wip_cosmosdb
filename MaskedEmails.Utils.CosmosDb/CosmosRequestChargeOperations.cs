@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Utils.CosmosDb.Interop;
 using Utils.CosmosDb.Logging;
 
@@ -22,7 +23,7 @@ namespace Utils.CosmosDb
         public CosmosRequestChargeOperations(CosmosClient client, ILogger<CosmosRequestChargeOperations> logger)
             : base(client, (ILogger)logger)
         {
-            logger_ = (ILogger)logger ?? new NoOpLogger();
+            logger_ = (ILogger)logger ?? NullLogger.Instance;
         }
 
         public override async Task<DatabaseResponse> CreateDatabaseIfNotExistsAsync(string databaseName)

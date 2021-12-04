@@ -2,6 +2,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Utils.CosmosDb.Interop;
 using Utils.CosmosDb.Logging;
 
@@ -29,7 +30,7 @@ namespace Utils.CosmosDb
         public CosmosOperations(CosmosClient client, ILogger logger)
         {
             client_ = client;
-            logger_ = logger ?? new NoOpLogger();
+            logger_ = logger ?? NullLogger.Instance;
         }
 
         public virtual Database GetDatabase(string databaseId)
