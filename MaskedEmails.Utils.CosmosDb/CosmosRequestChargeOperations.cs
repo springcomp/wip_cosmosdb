@@ -8,99 +8,71 @@ using Utils.CosmosDb.Logging;
 
 namespace Utils.CosmosDb
 {
-    public sealed class CosmosRequestChargeOperations : ICosmosRequestChargeOperations
+    public sealed class CosmosRequestChargeOperations : CosmosOperations, ICosmosRequestChargeOperations
     {
         private double requestCharges_ = 0.0D;
-        private readonly ICosmosOperations operations_;
         private readonly ILogger logger_;
 
         public double RequestCharges => requestCharges_;
 
         public CosmosRequestChargeOperations(CosmosClient client)
-            : this(new CosmosOperations(client, null), null)
+            : this(client, null)
         {
         }
         public CosmosRequestChargeOperations(CosmosClient client, ILogger<CosmosRequestChargeOperations> logger)
-            : this(new CosmosOperations(client, (ILogger)logger), logger)
+            : base(client, (ILogger)logger)
         {
-        }
-        public CosmosRequestChargeOperations(ICosmosOperations operations)
-            : this(operations, null)
-        {
-        }
-        public CosmosRequestChargeOperations(ICosmosOperations operations, ILogger<CosmosRequestChargeOperations> logger)
-        {
-            operations_ = operations;
             logger_ = (ILogger)logger ?? new NoOpLogger();
         }
 
-        public async Task<DatabaseResponse> CreateDatabaseIfNotExistsAsync(string databaseName)
+        public override async Task<DatabaseResponse> CreateDatabaseIfNotExistsAsync(string databaseName)
         {
             return await CalcRequestCharges<DatabaseResponse>(
                 nameof(ICosmosOperations.CreateDatabaseIfNotExistsAsync),
-                async () => await operations_.CreateDatabaseIfNotExistsAsync(databaseName),
+                async () => await base.CreateDatabaseIfNotExistsAsync(databaseName),
                 r => r.RequestCharge
             );
         }
 
-        async Task<ContainerResponse> ICosmosOperations.CreateContainerIfNotExistsAsync(Database database, string containerName, string partitionPath)
+        public override async Task<ContainerResponse> CreateContainerIfNotExistsAsync(Database database, string containerName, string partitionPath)
         {
             return await CalcRequestCharges<ContainerResponse>(
                 nameof(ICosmosOperations.CreateContainerIfNotExistsAsync),
-                async () => await operations_.CreateContainerIfNotExistsAsync(database, containerName, partitionPath),
+                async () => await base.CreateContainerIfNotExistsAsync(database, containerName, partitionPath),
                 r => r.RequestCharge
                 );
         }
-        public async Task<ItemResponse<T>> GetItemAsync<T>(Container container, string partition, string id) where T : ICosmosDbItem
+
+        public override async Task<ItemResponse<T>> GetItemAsync<T>(Container container, string partition, string id) 
         {
             return await CalcRequestCharges<ItemResponse<T>>(
                 nameof(ICosmosOperations.GetItemAsync),
-                async () => await operations_.GetItemAsync<T>(container, partition, id),
+                async () => await base.GetItemAsync<T>(container, partition, id),
                 r => r.RequestCharge
             );
         }
 
-        public async Task<ItemResponse<T>> CreateItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+        public override async Task<ItemResponse<T>> CreateItemAsync<T>(Container container, T item, string partition) 
         {
             return await CalcRequestCharges<ItemResponse<T>>(
                 nameof(ICosmosOperations.CreateItemAsync),
-                async () => await operations_.CreateItemAsync(container, item, partition),
+                async () => await base.CreateItemAsync(container, item, partition),
                 r => r.RequestCharge
             );
         }
 
-        public async Task<ItemResponse<T>> ReplaceItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+        public override async Task<ItemResponse<T>> ReplaceItemAsync<T>(Container container, T item, string partition) 
         {
             return await CalcRequestCharges<ItemResponse<T>>(
                 nameof(ICosmosOperations.CreateItemAsync),
-                async () => await operations_.ReplaceItemAsync(container, item, partition),
+                async () => await base.ReplaceItemAsync(container, item, partition),
                 r => r.RequestCharge
             );
         }
 
-        public async Task<ItemResponse<T>> CreateOrReplaceItemAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
+        public override Query<T> QueryItemsAsync<T>(Container container, string statement)
         {
-            try
-            {
-                var response = await GetItemAsync<T>(container, partition, item.Id);
-                return await ReplaceItemAsync<T>(container, item, partition);
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                return await CreateItemAsync<T>(container, item, partition);
-            }
-        }
-
-        public async Task<ItemResponse<T>> CreateItemIfNotExistsAsync<T>(Container container, T item, string partition) where T : ICosmosDbItem
-        {
-            try
-            {
-                return await CreateItemAsync<T>(container, item, partition);
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
-            {
-                return await GetItemAsync<T>(container, partition, item.Id);
-            }
+            return new Query<T>(container, statement);
         }
 
         private async Task<T> CalcRequestCharges<T>(string name, Func<Task<T>> function, Func<T, double> getRequestCharge)

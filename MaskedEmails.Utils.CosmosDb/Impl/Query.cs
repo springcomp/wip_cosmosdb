@@ -10,7 +10,7 @@ public sealed class Query<T> : IAsyncEnumerable<Page<T>> where T : ICosmosDbItem
     private readonly Container container_;
     private readonly QueryDefinition query_;
 
-    public Query(Container container, string query)
+    internal Query(Container container, string query)
     {
         container_ = container;
         query_ = new QueryDefinition(query);
@@ -25,6 +25,8 @@ public sealed class Query<T> : IAsyncEnumerable<Page<T>> where T : ICosmosDbItem
     {
         private readonly Container container_;
         private readonly QueryDefinition query_;
+        private readonly CancellationToken cancellationToken_;
+
         private FeedIterator<T> iterator_ = null;
         private Page<T> current_ = null;
 
@@ -32,6 +34,7 @@ public sealed class Query<T> : IAsyncEnumerable<Page<T>> where T : ICosmosDbItem
         {
             container_ = container;
             query_ = query;
+            cancellationToken_ = cancellationToken;
         }
 
         public Page<T> Current
@@ -43,7 +46,7 @@ public sealed class Query<T> : IAsyncEnumerable<Page<T>> where T : ICosmosDbItem
             var result = iterator_.HasMoreResults;
             if (result)
             {
-                var response = await iterator_.ReadNextAsync();
+                var response = await iterator_.ReadNextAsync(cancellationToken_);
                 current_ = new Page<T>(response);
             }
             return result;
