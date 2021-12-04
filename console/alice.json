@@ -1,14 +1,15 @@
 {
-	"id": "alice",
+	"id": "a1118e83-92e6-4465-91e1-7595d060195c",
 	"displayName": "Alice",
 	"createdUtc": "2021-07-27T15:53:44",
+	"emailAddress": "alice@example.com",
 	"forwardingAddress": "alice@somewhere.com",
 	"addresses": [
 		{
 			"name": "one",
 			"description": "This is addresse one.",
 			"emailAddress": "d.mcq.sdifo@masked-emails.me",
-			"forwardToEmailAddress": "alice@somewhere.com",
+			"enableForwarding": true,
 			"received": 42,
 			"createdUtc": "2021-07-27T15:53:44"
 		},
@@ -16,7 +17,7 @@
 			"name": "two",
 			"description": "This is addresse two.",
 			"emailAddress": "ezoinbuti@masked-emails.me",
-			"forwardToEmailAddress": "alice@somewhere.com",
+			"enableForwarding": false,
 			"received": 76,
 			"createdUtc": "2021-07-27T15:43:44"
 		},
@@ -24,7 +25,7 @@
 			"name": "three",
 			"description": "This is addresse three.",
 			"emailAddress": "opervny@masked-emails.me",
-			"forwardToEmailAddress": "alice@somewhere.com",
+			"enableForwarding": true,
 			"received": 42,
 			"createdUtc": "2021-07-27T15:33:44"
 		}

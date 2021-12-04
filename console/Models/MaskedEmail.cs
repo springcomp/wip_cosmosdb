@@ -8,16 +8,21 @@ namespace Models
 	{
 		[JsonProperty("id")]
 		public string Id { get; set; }
-		public string UserId { get; set; }
+		[JsonProperty("name")]
 		public string Name { get; set; }
+		[JsonProperty("description")]
 		public string Description { get; set; }
+		[JsonProperty("emailAddress")]
 		public string EmailAddress { get; set; }
-		public string ForwardToEmailAddress { get; set; }
+		[JsonProperty("enableForwarding")]
+		public bool EnableForwarding { get; set; }
 
 		// statistics
 
+		[JsonProperty("received")]
 		public int Received { get; set; }
 
+		[JsonProperty("createdUtc")]
 		public DateTime CreatedUtc { get; set; }
 
 		public void CloneTo(MaskedEmail target)
@@ -25,7 +30,7 @@ namespace Models
 			target.Name = Name;
 			target.Description = Description;
 			target.EmailAddress = EmailAddress;
-			target.ForwardToEmailAddress = ForwardToEmailAddress;
+			target.EnableForwarding = EnableForwarding;
 			target.Received = Received;
 			target.CreatedUtc = CreatedUtc;
 		}
@@ -35,7 +40,7 @@ namespace Models
 				Name = source.Name,
 				Description = source.Description,
 				EmailAddress = source.EmailAddress,
-				ForwardToEmailAddress = source.ForwardToEmailAddress,
+				EnableForwarding = source.EnableForwarding,
 				Received = source.Received,
 				CreatedUtc = source.CreatedUtc,
 			};
@@ -45,7 +50,7 @@ namespace Models
 
 		public override string ToString()
 		{
-			return $"{EmailAddress} ==> {ForwardToEmailAddress}";
+			return $"{EmailAddress} ==> {EnableForwarding}";
 		}
 	}
 }

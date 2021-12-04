@@ -15,28 +15,19 @@ using Microsoft.Extensions.Configuration;
 using Utils.CosmosDb.Interop;
 using Utils.CosmosDb;
 
-public class Program
+public partial class Program
 {
-	// The Cosmos client instance
-	private CosmosClient cosmosClient;
-
-	// The database we will create
-	private Database database;
-
-	// The container we will create.
-	private Container container;
-
 	// The name of the database and container we will create
-	private string databaseId = "FamilyDatabase";
-	private string containerId = "FamilyContainer";
+	private string DatabaseId = "MaskedEmails";
 
-    const string DatabaseId = "ProfilesDb";
-    const string PartitionKeyPath = "/id";
+	const string ContainerId = "ProfilesDb";
+	const string PartitionKeyPath = "/id";
 
 	private readonly AppSettings appSettings_;
 
 	private readonly ILogger logger_;
 	private readonly ICosmosRequestChargeOperations operations_;
+	private readonly CosmosClient client_;
 
 	public async static Task Main(string[] args)
 	{
@@ -96,22 +87,24 @@ public class Program
 
 				services.AddLogging(configure => configure.AddConsole());
 
-				services.AddTransient<ICosmosOperations, CosmosOperations>(provider =>
-				{
-					var logger = provider.GetRequiredService<ILogger<CosmosOperations>>();
-					var client = new CosmosClient(
+				services.AddTransient<ICosmosOperations, CosmosOperations>();
+				services.AddTransient<ICosmosRequestChargeOperations, CosmosRequestChargeOperations>(
+					provider =>
+					{
+						var logger = provider.GetRequiredService<ILogger<CosmosRequestChargeOperations>>();
+						var client = provider.GetRequiredService<CosmosClient>();
+						return new CosmosRequestChargeOperations(client, logger);
+					}
+				);
+				services.AddTransient<Program>();
+				services.AddSingleton<CosmosClient>(
+					new CosmosClient(
 						endpointUri,
 						accessKey,
 						skipSslValidation
 						? GetUnsafeCosmosClientOptions()
 						: new CosmosClientOptions()
-						);
-
-					return new CosmosOperations(client, logger);
-				});
-
-				services.AddTransient<ICosmosRequestChargeOperations, CosmosRequestChargeOperations>();
-				services.AddTransient<Program>();
+						));
 
 				services.AddSingleton<AppSettings>(GetAppSettings(hostContext));
 			});
@@ -129,11 +122,13 @@ public class Program
 
 	public Program(
 		AppSettings appSettings,
+		CosmosClient client,
 		ICosmosRequestChargeOperations operations,
 		ILogger<Program> logger
 	)
 	{
 		appSettings_ = appSettings;
+		client_ = client;
 
 		logger_ = logger;
 		operations_ = operations;
@@ -145,10 +140,22 @@ public class Program
 		{
 			logger_.LogDebug("Beginning operations...\n");
 
-			Database database = await operations_.CreateDatabaseIfNotExistsAsync(databaseId);
-			Container container = await operations_.CreateContainerIfNotExistsAsync(database, DatabaseId, PartitionKeyPath);
+			Database database = await operations_.CreateDatabaseIfNotExistsAsync(DatabaseId);
+			Container container = await operations_.CreateContainerIfNotExistsAsync(database, ContainerId, PartitionKeyPath);
 
-			await AddModelAsync(operations_, container);
+			//await AddModelAsync(operations_, container);
+
+			var perPage = 1;
+			var partition = "a1118e83-92e6-4465-91e1-7595d060195c";
+			var sort_by = "c.displayName";
+
+			await QueryProfilesAsync(container, perPage, sort_by, "desc");
+			//var statement = $"SELECT * FROM c ORDER BY {sort_by} {asc}";
+			//foreach (var page in await operations_.QueryAsync<Models.MaskedEmail>(database, container, statement))
+			//{
+			//	foreach (var item in page)
+			//		Console.WriteLine(item);
+			//}
 
 			AnsiConsole.MarkupLine($"[yellow]Request charges: {operations_.RequestCharges}RU.[/]");
 
@@ -192,25 +199,20 @@ public class Program
 		}
 		return container;
 	}
-
-	private async Task QueryAddressesAsync(Container container, string partition, int perPage = 1, string sort_by = "c.EmailAddress", string asc = "asc")
+	private async Task QueryProfilesAsync(Container container, int perPage = 1, string sort_by = "c.EmailAddress", string asc = "asc")
 	{
-		var sqlQueryText = $"SELECT TOP {perPage} * FROM c WHERE c.UserId = '{partition}' ORDER BY {sort_by} {asc}";
+		var sqlQueryText = $"SELECT * FROM c ORDER BY {sort_by} {asc}";
 
 		Console.WriteLine("Running query: {0}\n", sqlQueryText);
+		List<Model.Interop.User> profiles = new List<Model.Interop.User>();
 
-		QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText);
-		FeedIterator<Models.MaskedEmail> queryResultSetIterator = container.GetItemQueryIterator<Models.MaskedEmail>(queryDefinition);
-
-		List<Models.MaskedEmail> addresses = new List<Models.MaskedEmail>();
-
-		while (queryResultSetIterator.HasMoreResults)
+		var query = new Query<Model.Interop.User>(container, sqlQueryText);
+		await foreach (var page in query)
 		{
-			FeedResponse<Models.MaskedEmail> currentResultSet = await queryResultSetIterator.ReadNextAsync();
-			foreach (Models.MaskedEmail address in currentResultSet)
+			foreach (Model.Interop.User profile in page)
 			{
-				addresses.Add(address);
-				Console.WriteLine("\tRead {0}\n", address);
+				profiles.Add(profile);
+				Console.WriteLine("\tRead {0}\n", profile);
 			}
 		}
 	}

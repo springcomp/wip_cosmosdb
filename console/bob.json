@@ -1,14 +1,15 @@
 {
-	"id": "bob",
+	"id": "fe8ee8d2-5d47-463f-8ad3-bd65fc559246",
 	"displayName": "Bob",
 	"createdUtc": "2021-07-28T15:53:44",
+	"emailAddress": "bob@example.com",
 	"forwardingAddress": "bob@somewhere.com",
 	"addresses": [
 		{
 			"name": "four",
 			"description": "This is addresse one.",
 			"emailAddress": "ezxnqv5323@masked-emails.me",
-			"forwardToEmailAddress": "bob@somewhere.com",
+			"enableForwarding": true,
 			"received": 42,
 			"createdUtc": "2021-07-27T15:53:44"
 		},
@@ -16,7 +17,7 @@
 			"name": "zone",
 			"description": "This is addresse two.",
 			"emailAddress": "pklkghd64893lk@masked-emails.me",
-			"forwardToEmailAddress": "bob@somewhere.com",
+			"enableForwarding": true,
 			"received": 76,
 			"createdUtc": "2021-07-27T15:43:44"
 		},
@@ -24,7 +25,7 @@
 			"name": "Qtwo",
 			"description": "This is addresse three.",
 			"emailAddress": "sdljk54688sq7D@masked-emails.me",
-			"forwardToEmailAddress": "bob@somewhere.com",
+			"enableForwarding": true,
 			"received": 42,
 			"createdUtc": "2021-07-27T15:33:44"
 		}
