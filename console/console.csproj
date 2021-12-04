@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../MaskedEmails.Utils.CosmosDb/MaskedEmails.Utils.CosmosDb.csproj" />
+    <ProjectReference Include="..\CosmosDb.Utils\CosmosDb.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

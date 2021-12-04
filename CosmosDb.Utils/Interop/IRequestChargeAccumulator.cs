@@ -1,4 +1,4 @@
-﻿namespace Utils.CosmosDb.Interop
+﻿namespace CosmosDb.Utils.Interop
 {
     public interface IRequestChargeAccumulator
     {

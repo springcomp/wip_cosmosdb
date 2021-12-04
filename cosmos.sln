@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console", "console\console.csproj", "{4EF74625-FB76-4E1F-8604-40169487D51C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaskedEmails.Utils.CosmosDb", "MaskedEmails.Utils.CosmosDb\MaskedEmails.Utils.CosmosDb.csproj", "{284CC7D9-EEF2-4116-BF94-D074D89A1A2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CosmosDb.Utils", "CosmosDb.Utils\CosmosDb.Utils.csproj", "{284CC7D9-EEF2-4116-BF94-D074D89A1A2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace Utils.CosmosDb.Logging {
+namespace CosmosDb.Utils.Logging {
 	internal sealed class Templates {
 		public const string RequestChargeOperation = "Message={Message}, RequestCharge={RequestCharge}";
 	}

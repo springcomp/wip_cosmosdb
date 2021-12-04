@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Net;
 using Microsoft.Azure.Cosmos;
-using CosmosGettingStartedTutorial;
 using Newtonsoft.Json;
 using System.IO;
 using System.Net.Http;
@@ -12,8 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using Utils.CosmosDb.Interop;
-using Utils.CosmosDb;
+using CosmosDb.Utils.Interop;
+using CosmosDb.Utils;
 
 public partial class Program
 {
@@ -142,10 +139,10 @@ public partial class Program
 
             //Database database = await operations_.CreateDatabaseIfNotExistsAsync(DatabaseId);
             //Container container = await operations_.CreateContainerIfNotExistsAsync(database, ContainerId, PartitionKeyPath);
-            //await AddModelAsync(operations_, container);
 
             var database = operations_.GetDatabase(DatabaseId);
             var container = operations_.GetContainer(database, ContainerId);
+            await AddModelAsync(operations_, container);
 
             var perPage = 1;
             var partition = "a1118e83-92e6-4465-91e1-7595d060195c";
